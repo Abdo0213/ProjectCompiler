@@ -18,7 +18,7 @@ public class Lexer {
     );
 
     private static final String[] KEYWORDS = {
-            "Division", "InferedFrom", "WhetherDo-Else", "Ire", "Sire", "Clo",
+            "Division", "InferedFrom", "WhetherDoElse", "Ire", "Sire", "Clo",
             "SetOfClo", "FBU", "SFBU", "None", "Logical", "terminatethis",
             "Rotatewhen", "Continuewhen", "Replywith", "Seop", "Check",
             "Program", "End", "Using"
@@ -61,7 +61,8 @@ public class Lexer {
         // Check for operators
         if (token.matches("[+\\-*/]")) return TokenType.ARITH_OP;
         if (token.matches("&&|\\|\\||~")) return TokenType.LOGIC_OP;
-        if (token.matches("==|!=|<=|>=|[=<>]")) return TokenType.REL_OP;
+        if (token.matches("==|!=|<=|>=|<>|>|<")) return TokenType.REL_OP;
+        if (token.matches("=")) return TokenType.ASSIGN_OP;
         if (token.equals(".")) return TokenType.ACCESS_OP;
 
         // Check for other tokens
@@ -79,7 +80,7 @@ public class Lexer {
         switch (keyword) {
             case "Division": return TokenType.CLASS;
             case "InferedFrom": return TokenType.INHERITANCE;
-            case "WhetherDo-Else": return TokenType.CONDITION;
+            case "WhetherDoElse": return TokenType.CONDITION;
             case "Ire": return TokenType.INTEGER;
             case "Sire": return TokenType.SINTEGER;
             case "Clo": return TokenType.CHARACTER;

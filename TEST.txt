@@ -1,0 +1,87 @@
+Program 
+Division x { 
+Ire decrease ( ) { 
+Ire reg3 = 5;
+Continuewhen (counter; reg3 ; 1) { 
+reg3 = reg3 - 1;
+} 
+}
+} 
+End
+
+Program 
+Division x { 
+Ire decrease ( ) { 
+Ire reg3 = 5;
+WhetherDoElse (counter < num) { 
+reg3 = reg3 - 1;
+} 
+}
+} 
+End
+
+Program 
+Division x { 
+W decrease ( ) { 
+Ire reg3 = 5;
+WhetherDoElse (counter < num) { 
+reg3 = reg3 - 1;
+} 
+}
+} 
+End
+
+Program 
+Division x { 
+W x = 5;
+} 
+End
+
+Program 
+Division x { 
+W x(){}
+} 
+End
+
+Program 
+Division x { 
+W x;
+} 
+End
+
+Program 
+Division x { 
+W x();
+} 
+End
+
+Program 
+Division x InferedFrom x{ 
+Ire decrease ( ) { 
+Ire reg3 = 5;
+Continuewhen (counter; reg3 ; 1) { 
+reg3 = reg3 - 1;
+} 
+}
+}
+End
+
+
+Program 
+Division x InferedFrom x{ 
+Using ( "FName" ) ;
+Ire decrease ( ) { 
+Ire reg3 = 5;
+Continuewhen (counter; reg3 ; 1) { 
+reg3 = reg3 - 1;
+} 
+}
+}
+End
+
+
+
+
+
+
+

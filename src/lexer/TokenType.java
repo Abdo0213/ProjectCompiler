@@ -37,7 +37,11 @@ public enum TokenType {
     BRACES("Braces"),
     SEMICOLON(";"),
     COMMA(","),
+    READ("Read"),
+    WRITE("Write"),
     UNKNOWN("Unknown");
+
+
 
     private final String description;
 
