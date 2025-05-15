@@ -81,7 +81,7 @@ public class CompilerGUI extends JFrame {
 
         // Lexical analysis
         Lexer lexer = new Lexer();
-        List<Token> tokens = lexer.tokenize(code,"main.txt");
+        List<Token> tokens = lexer.tokenize(code,"");
 
         // Display tokens
         outputArea.append("=== Scanner Output ===\n");
@@ -93,12 +93,17 @@ public class CompilerGUI extends JFrame {
         Parser parser = new Parser(tokens);
         ParseTree parseTree = parser.parse();
         List<CompilerError> errors = parser.getErrors();
+        List<CompilerError> successes = parser.getSuccess();
 
         // Display parse tree
         parseTreeArea.append(parseTree.toString());
 
         // Display errors
         outputArea.append("\n=== Parser Output ===\n");
+        outputArea.append("Parser Match Success: \n");
+        for (CompilerError success : successes) {
+            outputArea.append(success.toString() + "\n");
+        }
         if (errors.isEmpty()) {
             outputArea.append("No syntax errors found.\n");
         } else {

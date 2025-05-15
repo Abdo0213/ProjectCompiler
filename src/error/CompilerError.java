@@ -25,7 +25,7 @@ public class CompilerError {
     @Override
     public String toString() {
         String fileInfo = fileName != null ? " [File: " + fileName + "]" : "";
-        return String.format("Line #: %d%s Error: %s",
+        return String.format("Line #: %d%s: %s",
                 lineNumber, fileInfo, message);
     }
 }

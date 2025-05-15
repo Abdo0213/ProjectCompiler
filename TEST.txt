@@ -69,7 +69,7 @@ End
 
 Program 
 Division x InferedFrom x{ 
-Using ( "FName" ) ;
+Using ( "src/bin/mainTest2.txt" ) ;
 Ire decrease ( ) { 
 Ire reg3 = 5;
 Continuewhen (counter; reg3 ; 1) { 
@@ -79,14 +79,29 @@ reg3 = reg3 - 1;
 }
 End
 
-Program 
-Division x InferedFrom x{ 
-Using ( "src/bin/mainTest.txt" ) ;
+Program
+Division x InferedFrom x{
+Using ( "src/bin/mainTest2.txt" ) ;
 }
 End
 
+Program
+Division x InferedFrom x{
+/-ss
+}
+End
 
+Program
+Division x InferedFrom x{
+/## ss
+##/
+}
+End
 
-
+Program
+Division x{
+/## ss ##/
+}
+End
 
 

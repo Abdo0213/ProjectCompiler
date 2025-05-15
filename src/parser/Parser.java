@@ -14,12 +14,14 @@ public class Parser {
     private ListIterator<Token> tokenIterator;
     private Token currentToken;
     private List<CompilerError> errors;
+    private List<CompilerError> success;
     private ParseTree parseTree;
 
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
         this.tokenIterator = tokens.listIterator();  // Use ListIterator
         this.errors = new ArrayList<>();
+        this.success = new ArrayList<>();
         this.parseTree = new ParseTree();
 
         if (tokenIterator.hasNext()) {
@@ -33,6 +35,11 @@ public class Parser {
     public List<CompilerError> getErrors() {
         return errors;
     }
+
+    public List<CompilerError> getSuccess() {
+        return success;
+    }
+
     private void advance() {
         if (tokenIterator.hasNext()) {
             currentToken = tokenIterator.next();
@@ -43,6 +50,11 @@ public class Parser {
     private void match(TokenType expectedType) {
         if (currentToken != null && currentToken.getType() == expectedType) {
             parseTree.addNode(currentToken);
+            success.add(new CompilerError(
+                    currentToken != null ? currentToken.getLineNumber() : -1,
+                    "Matched Rule used: " + expectedType,
+                    currentToken != null ? currentToken.getFileName() : null
+            ));
             advance();
         } else {
             String found = currentToken != null ?
@@ -51,8 +63,9 @@ public class Parser {
 
             errors.add(new CompilerError(
                     currentToken != null ? currentToken.getLineNumber() : -1,
-                    currentToken != null ? currentToken.getFileName() : null,
-                    "Expected " + expectedType + " but found " + found
+                    "Expected " + expectedType + " but found " + found,
+                    currentToken != null ? currentToken.getFileName() : null
+
             ));
         }
     }
@@ -370,8 +383,8 @@ public class Parser {
         } else {
             errors.add(new CompilerError(
                     currentToken.getLineNumber(),
-                    currentToken.getFileName(),
-                    "Not Matched Error: Expected valid type but found '" + currentToken.getValue() + "' (" + currentToken.getType() + ")"
+                    "Not Matched Error: Expected valid type but found '" + currentToken.getValue() + "' (" + currentToken.getType() + ")",
+                    currentToken.getFileName()
             ));
             advance();
         }

@@ -11,15 +11,16 @@ import java.util.regex.Pattern;
 
 public class Lexer {
     private Stack<LexerState> stateStack = new Stack<>();
-    private String currentDirectory = "bin/";
+    private String currentDirectory = "src/bin/";
+    private boolean inMultiLineComment = false;
     private static final Pattern TOKEN_PATTERNS = Pattern.compile(
             "\\s*(?:" +
-                    "/(?:-|##.*?##//)|" + // Comments
+                    "/(?:-|##)|" +  // Comment starters
                     "\"(?:\\\\.|[^\"\\\\])*\"|" + // Strings
                     "'(?:\\\\.|[^'\\\\])'|" + // Characters
                     "\\d+|" + // Numbers
                     "[a-zA-Z_][a-zA-Z0-9_]*|" + // Identifiers and keywords
-                    "&&|\\|\\||~|==|!=|<=|>=|[=<>+\\-*/.,;{}()\\[\\]]" + // Operators and delimiters
+                    "&&|\\|\\||~|==|!=|<=|>=|[=<>+\\-*/.,;{}()\\[\\]]" + // Operators
                     ")"
     );
 
@@ -33,36 +34,101 @@ public class Lexer {
     public List<Token> tokenize(String input, String sourceFileName) {
         List<Token> tokens = new ArrayList<>();
         String[] lines = input.split("\n");
-        String currentDirectory = sourceFileName != null ?
-                new File(sourceFileName).getParent() : "";
+        currentDirectory = sourceFileName != null ?
+                new File(sourceFileName).getParent() : currentDirectory;
 
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i].trim();
-            if (line.isEmpty()) continue;
 
-            // Check for using command at start of line
+            // Skip empty lines unless we're in a multi-line comment
+            if (line.isEmpty() && !inMultiLineComment) continue;
+
+            // Handle multi-line comments
+            if (inMultiLineComment) {
+                if (line.contains("##/")) {
+                    // End of multi-line comment
+                    int endIndex = line.indexOf("##/");
+                    tokens.add(new Token(TokenType.COMMENT, line.substring(0, endIndex + 3), i + 1, sourceFileName));
+                    inMultiLineComment = false;
+
+                    // Process remaining content after comment
+                    String remaining = line.substring(endIndex + 3).trim();
+                    if (!remaining.isEmpty()) {
+                        processLine(remaining, i + 1, sourceFileName, tokens);
+                    }
+                } else {
+                    // Entire line is part of multi-line comment
+                    tokens.add(new Token(TokenType.COMMENT, line, i + 1, sourceFileName));
+                }
+                continue;
+            }
+
+            // Check for start of multi-line comment
+            if (line.contains("/##")) {
+                int startIndex = line.indexOf("/##");
+
+                // Process any content before the comment
+                String beforeComment = line.substring(0, startIndex).trim();
+                if (!beforeComment.isEmpty()) {
+                    processLine(beforeComment, i + 1, sourceFileName, tokens);
+                }
+
+                // Handle the comment
+                if (line.contains("##/")) {
+                    // Single-line comment block
+                    int endIndex = line.indexOf("##/", startIndex);
+                    tokens.add(new Token(TokenType.COMMENT,
+                            line.substring(startIndex, endIndex + 3),
+                            i + 1, sourceFileName));
+
+                    // Process remaining content after comment
+                    String remaining = line.substring(endIndex + 3).trim();
+                    if (!remaining.isEmpty()) {
+                        processLine(remaining, i + 1, sourceFileName, tokens);
+                    }
+                } else {
+                    // Start of multi-line comment
+                    tokens.add(new Token(TokenType.COMMENT,
+                            line.substring(startIndex),
+                            i + 1, sourceFileName));
+                    inMultiLineComment = true;
+                }
+                continue;
+            }
+
+            // Check for single-line comments
+            if (line.startsWith("/-")) {
+                tokens.add(new Token(TokenType.COMMENT, line, i + 1, sourceFileName));
+                continue;
+            }
+
+            // Check for Using command (must be at start of line)
             if (line.startsWith("Using")) {
                 processUsingCommand(line, i + 1, currentDirectory, tokens);
                 continue;
             }
 
-            // Normal token processing
-            Matcher matcher = TOKEN_PATTERNS.matcher(line);
-            while (matcher.find()) {
-                String tokenValue = matcher.group().trim();
-                if (tokenValue.isEmpty()) continue;
-
-                // Skip comments
-                if (tokenValue.startsWith("/-") || tokenValue.startsWith("/##")) {
-                    continue;
-                }
-
-                TokenType type = determineTokenType(tokenValue);
-                tokens.add(new Token(type, tokenValue, i + 1, sourceFileName));
-            }
+            // Normal line processing
+            processLine(line, i + 1, sourceFileName, tokens);
         }
-
         return tokens;
+    }
+
+    private void processLine(String line, int lineNumber, String sourceFileName, List<Token> tokens) {
+        Matcher matcher = TOKEN_PATTERNS.matcher(line);
+        while (matcher.find()) {
+            String tokenValue = matcher.group().trim();
+            if (tokenValue.isEmpty()) continue;
+
+            // Skip any comment tokens (shouldn't happen here if patterns are correct)
+            if (tokenValue.startsWith("/-") || tokenValue.startsWith("/##")) {
+                tokens.add(new Token(TokenType.COMMENT, tokenValue, lineNumber, sourceFileName));
+                break;
+            }
+
+            TokenType type = determineTokenType(tokenValue);
+            tokens.add(new Token(type, tokenValue, lineNumber, sourceFileName));
+        }
     }
 
     private TokenType determineTokenType(String token) {
@@ -105,7 +171,6 @@ public class Lexer {
             } else {
                 includedFile = new File(currentDirectory, includedPath);
             }
-            System.out.println(includedFile);
 
             if (includedFile.exists()) {
                 try {
@@ -113,7 +178,6 @@ public class Lexer {
                     List<Token> includedTokens = tokenize(includedContent, includedFile.getAbsolutePath());
                     tokens.addAll(includedTokens);
                 } catch (IOException e) {
-                    // Optionally add error token
                     tokens.add(new Token(TokenType.ERROR, "File not found: " + includedPath, lineNumber, currentDirectory));
                 }
             } else {
@@ -121,6 +185,7 @@ public class Lexer {
             }
         }
     }
+
     private TokenType getKeywordTokenType(String keyword) {
         switch (keyword) {
             case "Division": return TokenType.CLASS;
@@ -146,6 +211,7 @@ public class Lexer {
             default: return TokenType.UNKNOWN;
         }
     }
+
     private static class LexerState {
         String directory;
         int returnLineNumber;
@@ -156,3 +222,48 @@ public class Lexer {
         }
     }
 }
+/*
+public List<Token> tokenize(String input, String sourceFileName) {
+        isComment = false;
+        List<Token> tokens = new ArrayList<>();
+        String[] lines = input.split("\n");
+        String currentDirectory = sourceFileName != null ?
+                new File(sourceFileName).getParent() : "";
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].trim();
+            if (line.isEmpty()) continue;
+
+            // Check for using command at start of line
+            if (line.startsWith("Using")) {
+                processUsingCommand(line, i + 1, currentDirectory, tokens);
+                continue;
+            }
+
+            // Normal token processing
+            Matcher matcher = TOKEN_PATTERNS.matcher(line);
+            Matcher matcher1 = COMMENT_PATTERN.matcher((line));
+            while (matcher.find()) {
+                String tokenValue = matcher.group().trim();
+                if (tokenValue.isEmpty()) continue;
+
+                // Skip comments
+                if (tokenValue.startsWith("/-") || tokenValue.startsWith("/##")) {
+                    isComment = true;
+                    tokens.add(new Token(TokenType.COMMENT, tokenValue, i + 1, sourceFileName));
+                    break;
+                } else{
+                    isComment = false;
+                }
+
+
+                if(!isComment){
+                    TokenType type = determineTokenType(tokenValue);
+                    tokens.add(new Token(type, tokenValue, i + 1, sourceFileName));
+                }
+            }
+        }
+
+        return tokens;
+    }
+* */
