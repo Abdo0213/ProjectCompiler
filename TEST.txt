@@ -79,6 +79,11 @@ reg3 = reg3 - 1;
 }
 End
 
+Program 
+Division x InferedFrom x{ 
+Using ( "src/bin/mainTest.txt" ) ;
+}
+End
 
 
 

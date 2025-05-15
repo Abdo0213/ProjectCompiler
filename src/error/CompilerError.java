@@ -3,10 +3,12 @@ package error;
 public class CompilerError {
     private final int lineNumber;
     private final String message;
+    private String fileName;
 
-    public CompilerError(int lineNumber, String message) {
+    public CompilerError(int lineNumber, String message, String fileName) {
         this.lineNumber = lineNumber;
         this.message = message;
+        this.fileName = fileName;
     }
 
     public int getLineNumber() {
@@ -16,9 +18,14 @@ public class CompilerError {
     public String getMessage() {
         return message;
     }
+    public String getFileName() {
+        return fileName;
+    }
 
     @Override
     public String toString() {
-        return String.format("Line #: %d Error: %s", lineNumber, message);
+        String fileInfo = fileName != null ? " [File: " + fileName + "]" : "";
+        return String.format("Line #: %d%s Error: %s",
+                lineNumber, fileInfo, message);
     }
 }

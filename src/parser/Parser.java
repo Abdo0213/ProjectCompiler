@@ -45,9 +45,15 @@ public class Parser {
             parseTree.addNode(currentToken);
             advance();
         } else {
-            String errorMsg = String.format("Expected %s but found %s",
-                    expectedType, currentToken != null ? currentToken.getType() : "EOF");
-            errors.add(new CompilerError(currentToken != null ? currentToken.getLineNumber() : -1, errorMsg));
+            String found = currentToken != null ?
+                    "'" + currentToken.getValue() + "' (" + currentToken.getType() + ")" :
+                    "end of input";
+
+            errors.add(new CompilerError(
+                    currentToken != null ? currentToken.getLineNumber() : -1,
+                    currentToken != null ? currentToken.getFileName() : null,
+                    "Expected " + expectedType + " but found " + found
+            ));
         }
     }
     private int getCurrentPosition() {
@@ -79,21 +85,27 @@ public class Parser {
         currentToken = tokens.get(position);
     }
     private void parseProgram() {
-        parseTree.startRule("Program");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("Program",lineNumber,fileName);
         match(TokenType.START_STATEMENT);
         parseClassDeclarationList();
         match(TokenType.END_STATEMENT);
         parseTree.endRule();
     }
     private void parseClassDeclarationList() {
-        parseTree.startRule("ClassDeclarationList");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("ClassDeclarationList",lineNumber,fileName);
         while (currentToken != null && currentToken.getType() == TokenType.CLASS) {
             parseClassDeclaration();
         }
         parseTree.endRule();
     }
     private void parseClassDeclaration() {
-        parseTree.startRule("ClassDeclaration");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("ClassDeclaration",lineNumber,fileName);
         match(TokenType.CLASS);
         match(TokenType.IDENTIFIER);
 
@@ -108,14 +120,18 @@ public class Parser {
         parseTree.endRule();
     }
     private void parseClassImplementation() {
-        parseTree.startRule("ClassImplementation");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("ClassImplementation",lineNumber,fileName);
         while (currentToken != null && currentToken.getType() != TokenType.BRACES) {
             parseClassItem();
         }
         parseTree.endRule();
     }
     private void parseClassItem() {
-        parseTree.startRule("ClassItem");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("ClassItem",lineNumber,fileName);
         if (currentToken != null) {
             /*if (isValidType(currentToken.getType())) {
                 if (isLikelyMethodDeclaration()) {
@@ -153,9 +169,12 @@ public class Parser {
                 case COMMENT:
                     parseComment();
                     break;
+                case START_STATEMENT:
+                    parseProgram();
+                    break;
                 case IDENTIFIER:
                     if (isFunctionCall()) {
-                        parseFuncCall(); //  id id = 20;Done  id id () {}  id id; id id ();
+                        parseFuncCall(); //  id id = 20;  id id () {}  id id; id id ();
                     } else if(isAssignment()){
                         parseAssignment();
                     } else if (isLikelyMethodDeclaration()) {
@@ -164,14 +183,20 @@ public class Parser {
                         parseVarDeclaration();
                     }
                     else {
-                        errors.add(new CompilerError(currentToken.getLineNumber(),
-                                "Unexpected identifier: " + currentToken.getValue()));
+                        errors.add(new CompilerError(
+                                currentToken.getLineNumber(),
+                                currentToken.getFileName(),
+                                "Not Matched Error: '" + currentToken.getValue() + "' is not a valid Type"
+                        ));
                         advance();
                     }
                     break;
                 default:
-                    errors.add(new CompilerError(currentToken.getLineNumber(),
-                            "Unexpected token in class implementation: " + currentToken.getType()));
+                    errors.add(new CompilerError(
+                            currentToken.getLineNumber(),
+                            currentToken.getFileName(),
+                            "Not Matched Error: '" + currentToken.getValue() + "' is an unexpected token in class implementation"
+                    ));
                     advance();
             }
         }
@@ -221,12 +246,15 @@ public class Parser {
     }
     private void parseMethodDeclaration() {
         int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
-        parseTree.startRule("MethodDeclaration");
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("MethodDeclaration",lineNumber,fileName);
         try {
             if (currentToken == null /*|| !isValidType(currentToken.getType())*/) {
                 errors.add(new CompilerError(
                         currentToken != null ? currentToken.getLineNumber() : -1,
-                        "'" + (currentToken != null ? currentToken.getValue() : "null") + "' is not a valid Type"));
+                        currentToken != null ? currentToken.getFileName() : null,
+                        "Not Matched Error: '" + (currentToken != null ? currentToken.getValue() : "null") + "' is not a valid Type"
+                ));
                 return;
             }
 
@@ -260,7 +288,9 @@ public class Parser {
         }
     }
     private void parseFuncDeclaration() {
-        parseTree.startRule("FuncDeclaration");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("FuncDeclaration",lineNumber,fileName);
 
         // Rule 7: FuncDecl → Type ID ( ParameterList )
         parseType();
@@ -273,7 +303,9 @@ public class Parser {
     }
 
     private void parseParameterList() {
-        parseTree.startRule("ParameterList");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("ParameterList",lineNumber,fileName);
 
         // Rule 9: ParameterList → ε | None | NonEmptyParameterList
         if (currentToken != null && currentToken.getType() == TokenType.VOID) {
@@ -286,7 +318,9 @@ public class Parser {
         parseTree.endRule();
     }
     private void parseNonEmptyParameterList() {
-        parseTree.startRule("NonEmptyParameterList");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("NonEmptyParameterList",lineNumber,fileName);
 
         // Rule 10: NonEmptyParameterList → Type ID | NonEmptyParameterList , Type ID
         parseType();
@@ -301,21 +335,27 @@ public class Parser {
         parseTree.endRule();
     }
     private void parseVarDeclaration() {
-        parseTree.startRule("VarDeclaration");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("VarDeclaration",lineNumber,fileName);
         parseType();
         parseIDList();
         match(TokenType.SEMICOLON);
         parseTree.endRule();
     }
     private void parseAssignmentVarDeclaration() {
-        parseTree.startRule("VarDeclaration");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("VarDeclaration",lineNumber,fileName);
         if(isValidType(currentToken.getType())) // int x =5; x =5; w w = 5;
             parseType();
         parseIDList(); // int x =6; int x,z = 5; w , w = 5
         parseTree.endRule();
     }
     private void parseType() {
-        parseTree.startRule("Type");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("Type",lineNumber,fileName);
         if (currentToken != null && (
                 currentToken.getType() == TokenType.INTEGER ||
                         currentToken.getType() == TokenType.SINTEGER ||
@@ -328,15 +368,20 @@ public class Parser {
             match(currentToken.getType());
 
         } else {
-            errors.add(new CompilerError(currentToken.getLineNumber(),
-                    "Expected type but found: " + currentToken.getType()));
+            errors.add(new CompilerError(
+                    currentToken.getLineNumber(),
+                    currentToken.getFileName(),
+                    "Not Matched Error: Expected valid type but found '" + currentToken.getValue() + "' (" + currentToken.getType() + ")"
+            ));
             advance();
         }
         parseTree.endRule();
     }
 
     private void parseIDList() {
-        parseTree.startRule("IDList");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("IDList",lineNumber,fileName);
         match(TokenType.IDENTIFIER);// w w
         while (currentToken != null && currentToken.getType() == TokenType.COMMA) { // ,
             match(TokenType.COMMA);
@@ -345,7 +390,9 @@ public class Parser {
         parseTree.endRule();
     }
     private void parseUsingCommand() {
-        parseTree.startRule("UsingCommand");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("UsingCommand",lineNumber,fileName);
         match(TokenType.INCLUSION);
         match(TokenType.BRACES); // (
         match(TokenType.STRING); // Filename
@@ -353,8 +400,11 @@ public class Parser {
         match(TokenType.SEMICOLON);
         parseTree.endRule();
     }
+
     private void parseFuncCall() {
-        parseTree.startRule("FuncCall");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("FuncCall",lineNumber,fileName);
         match(TokenType.IDENTIFIER); // Function name
         match(TokenType.BRACES); // (
         parseArgumentList();
@@ -379,7 +429,9 @@ public class Parser {
         }
     }
     private void parseArgumentList() {
-        parseTree.startRule("ArgumentList");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("ArgumentList",lineNumber,fileName);
         if (currentToken != null && currentToken.getType() != TokenType.BRACES) { // )
             parseNonEmptyArgumentList();
         }
@@ -387,7 +439,9 @@ public class Parser {
     }
 
     private void parseNonEmptyArgumentList() {
-        parseTree.startRule("NonEmptyArgumentList");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("NonEmptyArgumentList",lineNumber,fileName);
         parseExpression();
         while (currentToken != null && currentToken.getType() == TokenType.COMMA) {
             match(TokenType.COMMA);
@@ -397,7 +451,9 @@ public class Parser {
     }
 
     private void parseComment() {
-        parseTree.startRule("Comment");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("Comment",lineNumber,fileName);
         if (currentToken.getType() == TokenType.COMMENT) {
             // Single-line comment
             if (currentToken.getValue().startsWith("/-")) {
@@ -416,7 +472,9 @@ public class Parser {
     }
 
     private void parseExpression() {
-        parseTree.startRule("Expression");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("Expression",lineNumber,fileName);
         parseTerm();
         // Only handle + and - at expression level
         while (currentToken != null &&
@@ -429,7 +487,9 @@ public class Parser {
     }
 
     private void parseTerm() {
-        parseTree.startRule("Term");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("Term",lineNumber,fileName);
         parseFactor();
         // Only handle * and / at term level
         while (currentToken != null &&
@@ -442,7 +502,9 @@ public class Parser {
     }
 
     private void parseFactor() {
-        parseTree.startRule("Factor");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("Factor",lineNumber,fileName);
         if (currentToken != null) {
             switch (currentToken.getType()) {
                 case IDENTIFIER:
@@ -457,8 +519,12 @@ public class Parser {
                     }
                     break;
                 default:
-                    errors.add(new CompilerError(currentToken.getLineNumber(),
-                            "Unexpected token in factor: " + currentToken.getType()));
+                    errors.add(new CompilerError(
+                            currentToken.getLineNumber(),
+                            currentToken.getFileName(),
+                            "Not Matched Error: Unexpected token in factor expression: '" +
+                                    currentToken.getValue() + "' (" + currentToken.getType() + ")"
+                    ));
                     advance();
             }
         }
@@ -466,7 +532,9 @@ public class Parser {
     }
 
     private void parseStatements() {
-        parseTree.startRule("Statements");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("Statements",lineNumber,fileName);
         while (currentToken != null && !currentToken.getValue().equals("}")) {
             parseStatement();
         }
@@ -474,7 +542,9 @@ public class Parser {
     }
 
     private void parseStatement() {
-        parseTree.startRule("Statement");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("Statement",lineNumber,fileName);
         if (currentToken != null) {
             switch (currentToken.getType()) {
                 case INTEGER:
@@ -521,15 +591,20 @@ public class Parser {
                     }
                     break;
                 default:
-                    errors.add(new CompilerError(currentToken.getLineNumber(),
-                            "Unexpected statement: " + currentToken.getType()));
+                    errors.add(new CompilerError(
+                            currentToken.getLineNumber(),
+                            currentToken.getFileName(),
+                            "Not Matched Error: Unexpected statement '" + currentToken.getValue() + "' (" + currentToken.getType() + ")"
+                    ));
                     advance();
             }
         }
         parseTree.endRule();
     }
     private void parseWhetherDoStatement() {
-        parseTree.startRule("WhetherDoStatement");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("WhetherDoStatement",lineNumber,fileName);
         match(TokenType.CONDITION); // "WhetherDo"
         match(TokenType.BRACES);    // "("
         parseConditionExpression();
@@ -545,7 +620,9 @@ public class Parser {
     }
 
     private void parseConditionExpression() {
-        parseTree.startRule("ConditionExpression");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("ConditionExpression",lineNumber,fileName);
         parseCondition();
         while (currentToken != null &&
                 (currentToken.getType() == TokenType.LOGIC_OP)) {
@@ -555,16 +632,18 @@ public class Parser {
         parseTree.endRule();
     }
 
-    private void parseCondition() {
-        parseTree.startRule("Condition");
+    private void parseCondition() {int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("Condition",lineNumber,fileName);
         parseExpression();
         match(TokenType.REL_OP); // ==, !=, etc.
         parseExpression();
         parseTree.endRule();
     }
 
-    private void parseRotateWhenStatement() {
-        parseTree.startRule("RotateWhenStatement");
+    private void parseRotateWhenStatement() {int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("RotateWhenStatement",lineNumber,fileName);
         match(TokenType.LOOP);      // "Rotatewhen"
         match(TokenType.BRACES);    // "("
         parseConditionExpression();
@@ -574,7 +653,9 @@ public class Parser {
     }
 
     private void parseContinueWhenStatement() {
-        parseTree.startRule("ContinueWhenStatement");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("ContinueWhenStatement",lineNumber,fileName);
         match(TokenType.LOOP);      // "Continuewhen"
         match(TokenType.BRACES);    // "("
         parseExpression();          // Initialization
@@ -588,7 +669,9 @@ public class Parser {
     }
 
     private void parseReplyWithStatement() {
-        parseTree.startRule("ReplyWithStatement");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("ReplyWithStatement",lineNumber,fileName);
         match(TokenType.RETURN);    // "Replywith"
         if (currentToken != null && currentToken.getType() == TokenType.IDENTIFIER) {
             match(TokenType.IDENTIFIER);
@@ -600,14 +683,18 @@ public class Parser {
     }
 
     private void parseTerminateThisStatement() {
-        parseTree.startRule("TerminateThisStatement");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("TerminateThisStatement",lineNumber,fileName);
         match(TokenType.BREAK);     // "terminatethis"
         match(TokenType.SEMICOLON);
         parseTree.endRule();
     }
 
     private void parseAssignment() {
-        parseTree.startRule("Assignment");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("Assignment",lineNumber,fileName);
         parseAssignmentVarDeclaration();
         match(TokenType.ASSIGN_OP); // "="
         parseExpression();
@@ -616,7 +703,9 @@ public class Parser {
     }
 
     private void parseBlockStatements() {
-        parseTree.startRule("BlockStatements");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("BlockStatements",lineNumber,fileName);
         match(TokenType.BRACES);    // "{"
         parseStatements();
         match(TokenType.BRACES);    // "}"
@@ -635,7 +724,9 @@ public class Parser {
         }
     }
     private void parseReadStatement() {
-        parseTree.startRule("ReadStatement");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("ReadStatement",lineNumber,fileName);
         match(TokenType.READ);      // "read"
         match(TokenType.BRACES);    // "("
         match(TokenType.IDENTIFIER); // Variable to read into
@@ -644,7 +735,9 @@ public class Parser {
         parseTree.endRule();
     }
     private void parseWriteStatement() {
-        parseTree.startRule("WriteStatement");
+        int lineNumber = currentToken != null ? currentToken.getLineNumber() : -1;
+        String fileName = currentToken != null ? currentToken.getFileName() : null;
+        parseTree.startRule("WriteStatement", lineNumber,fileName);
         match(TokenType.WRITE);     // "write"
         match(TokenType.BRACES);    // "("
         parseExpression();          // Expression to output

@@ -1,11 +1,17 @@
 package lexer;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Lexer {
+    private Stack<LexerState> stateStack = new Stack<>();
+    private String currentDirectory = "bin/";
     private static final Pattern TOKEN_PATTERNS = Pattern.compile(
             "\\s*(?:" +
                     "/(?:-|##.*?##//)|" + // Comments
@@ -24,26 +30,35 @@ public class Lexer {
             "Program", "End", "Using"
     };
 
-    public List<Token> tokenize(String input) {
+    public List<Token> tokenize(String input, String sourceFileName) {
         List<Token> tokens = new ArrayList<>();
         String[] lines = input.split("\n");
+        String currentDirectory = sourceFileName != null ?
+                new File(sourceFileName).getParent() : "";
 
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i].trim();
             if (line.isEmpty()) continue;
 
+            // Check for using command at start of line
+            if (line.startsWith("Using")) {
+                processUsingCommand(line, i + 1, currentDirectory, tokens);
+                continue;
+            }
+
+            // Normal token processing
             Matcher matcher = TOKEN_PATTERNS.matcher(line);
             while (matcher.find()) {
-                String token = matcher.group().trim();
-                if (token.isEmpty()) continue;
+                String tokenValue = matcher.group().trim();
+                if (tokenValue.isEmpty()) continue;
 
                 // Skip comments
-                if (token.startsWith("/-") || token.startsWith("/##")) {
+                if (tokenValue.startsWith("/-") || tokenValue.startsWith("/##")) {
                     continue;
                 }
 
-                TokenType type = determineTokenType(token);
-                tokens.add(new Token(type, token, i + 1));
+                TokenType type = determineTokenType(tokenValue);
+                tokens.add(new Token(type, tokenValue, i + 1, sourceFileName));
             }
         }
 
@@ -76,6 +91,36 @@ public class Lexer {
         return TokenType.UNKNOWN;
     }
 
+    private void processUsingCommand(String line, int lineNumber, String currentDirectory, List<Token> tokens) {
+        Pattern usingPattern = Pattern.compile("Using\\s*\\(\\s*\"([^\"]+)\"\\s*\\)\\s*;");
+        Matcher matcher = usingPattern.matcher(line);
+
+        if (matcher.find()) {
+            String includedPath = matcher.group(1);
+            File includedFile;
+
+            // Handle both absolute and relative paths
+            if (new File(includedPath).isAbsolute()) {
+                includedFile = new File(includedPath);
+            } else {
+                includedFile = new File(currentDirectory, includedPath);
+            }
+            System.out.println(includedFile);
+
+            if (includedFile.exists()) {
+                try {
+                    String includedContent = Files.readString(includedFile.toPath());
+                    List<Token> includedTokens = tokenize(includedContent, includedFile.getAbsolutePath());
+                    tokens.addAll(includedTokens);
+                } catch (IOException e) {
+                    // Optionally add error token
+                    tokens.add(new Token(TokenType.ERROR, "File not found: " + includedPath, lineNumber, currentDirectory));
+                }
+            } else {
+                tokens.add(new Token(TokenType.ERROR, "File not found: " + includedPath, lineNumber, currentDirectory));
+            }
+        }
+    }
     private TokenType getKeywordTokenType(String keyword) {
         switch (keyword) {
             case "Division": return TokenType.CLASS;
@@ -99,6 +144,15 @@ public class Lexer {
             case "End": return TokenType.END_STATEMENT;
             case "Using": return TokenType.INCLUSION;
             default: return TokenType.UNKNOWN;
+        }
+    }
+    private static class LexerState {
+        String directory;
+        int returnLineNumber;
+
+        LexerState(String directory, int returnLineNumber) {
+            this.directory = directory;
+            this.returnLineNumber = returnLineNumber;
         }
     }
 }

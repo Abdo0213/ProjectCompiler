@@ -39,6 +39,7 @@ public enum TokenType {
     COMMA(","),
     READ("Read"),
     WRITE("Write"),
+    ERROR("Error"),
     UNKNOWN("Unknown");
 
 
